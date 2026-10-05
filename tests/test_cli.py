@@ -8,8 +8,10 @@ import tempfile
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 
 import main
+from ai_commit_pr_generator import client
 
 RESPONSES = {}
 LAST_BODY = {}
@@ -58,10 +60,16 @@ class CliTest(unittest.TestCase):
         subprocess.run(["git", "commit", "-qm", "init"], check=True)
         os.environ["AI_API_URL"] = self.url
         os.environ["AI_API_KEY"] = "test-key"
+        # 개발자 PC의 실제 .env가 테스트에 섞이지 않도록 별도 경로로 교체 (git 저장소 밖)
+        self.env_dir = tempfile.TemporaryDirectory()
+        self.old_env_file = client.ENV_FILE
+        client.ENV_FILE = Path(self.env_dir.name) / ".env"
 
     def tearDown(self):
         os.chdir(self.old_cwd)
         self.dir.cleanup()
+        client.ENV_FILE = self.old_env_file
+        self.env_dir.cleanup()
         os.environ.pop("AI_API_URL", None)
         os.environ.pop("AI_API_KEY", None)
 
@@ -86,6 +94,16 @@ class CliTest(unittest.TestCase):
         code, _, err = self.run_cli("commit")
         self.assertEqual(code, 1)
         self.assertIn("AI_API_KEY", err)
+
+    def test_key_from_env_file(self):
+        del os.environ["AI_API_KEY"]
+        client.ENV_FILE.write_text('# 주석\n\nexport AI_API_KEY="file-key"\n', encoding="utf-8")
+        self.assertEqual(client.get_api_key(), "file-key")
+        self.assertNotIn("AI_API_KEY", os.environ)  # 하위 프로세스로 전달되지 않음
+
+    def test_env_var_overrides_env_file(self):
+        client.ENV_FILE.write_text("AI_API_KEY=file-key\n", encoding="utf-8")
+        self.assertEqual(client.get_api_key(), "test-key")
 
     def test_commit_ok(self):
         self.edit()

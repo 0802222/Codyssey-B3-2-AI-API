@@ -7,6 +7,7 @@ __pycache__/
 # 비밀값 (API 키 실수 커밋 방지)
 .env
 .env.*
+!.env.example
 
 # 가상환경
 .venv/

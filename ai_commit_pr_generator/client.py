@@ -4,6 +4,7 @@ import os
 import socket
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 API_URL = "https://copa.codyssey.kr/v1/messages"
 API_VERSION = "2023-06-01"
@@ -13,16 +14,39 @@ DEFAULT_MODEL = "claude-haiku-4"
 DEFAULT_TEMPERATURE = 0.3
 DEFAULT_MAX_TOKENS = 500
 
+# 대상 프로젝트가 아니라 이 도구 폴더(main.py 옆)의 .env를 읽음
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+
 
 class AIClientError(Exception):
     pass
 
 
 def get_api_key() -> str:
-    key = os.environ.get("AI_API_KEY", "").strip()
+    """환경변수 우선, 없으면 .env. os.environ에 넣지 않아 git 하위 프로세스로 전달되지 않음."""
+    key = os.environ.get("AI_API_KEY", "").strip() or _read_env_file().get("AI_API_KEY", "").strip()
     if not key:
-        raise AIClientError('AI_API_KEY 환경변수가 설정되지 않았습니다.\n## 예) export AI_API_KEY="YOUR_KEY"')
+        raise AIClientError(f"AI_API_KEY가 설정되지 않았습니다.\n## 예) {ENV_FILE} 파일에 AI_API_KEY=YOUR_KEY 작성")
     return key
+
+
+def _read_env_file() -> dict[str, str]:
+    """KEY=VALUE 형식만 지원. 빈 줄·# 주석·export 접두어·감싼 따옴표 처리."""
+    try:
+        lines = ENV_FILE.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return {}
+    values = {}
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.removeprefix("export ").split("=", 1)
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        values[name.strip()] = value
+    return values
 
 
 def generate(system: str, user: str, api_key: str, model: str = DEFAULT_MODEL,
