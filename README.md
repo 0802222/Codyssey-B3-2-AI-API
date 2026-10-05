@@ -14,7 +14,7 @@ git 변경 사항(`git status`, `git diff`)을 AI API에 넘겨 커밋 메시지
 ## 요구 사항
 - Python 3.10 이상
 - Git
-- Anthropic API Key
+- Anthropic 호환 API Key (Codyssey 게이트웨이 발급 키)
 - 외부 패키지 없음 (표준 라이브러리만 사용)
 
 ## 설치 및 실행
@@ -40,12 +40,12 @@ $env:AI_API_KEY="YOUR_KEY"
 python main.py commit                       # 커밋 메시지 생성
 python main.py pr                           # PR 제목/본문 생성
 python main.py commit --safe-mode           # 마스킹 + diff 제한 후 전송
-python main.py pr --model claude-sonnet-5-5 --temperature 0.2 --max-tokens 800
+python main.py pr --model claude-sonnet-4 --temperature 0.2 --max-tokens 800
 ```
 
 | 옵션 | 기본값 | 설명 |
 |---|---|---|
-| `--model` | `claude-haiku-4-5-20251001` | 사용할 모델 |
+| `--model` | `claude-haiku-4` | 사용할 모델 |
 | `--temperature` | `0.3` | 0.0~1.0. 낮을수록 일관됨, 높을수록 다양함 |
 | `--max-tokens` | `500` | 응답 최대 토큰. 너무 작으면 문장이 잘림 |
 | `--safe-mode` | off | 마스킹 + diff 제한 활성화 |
