@@ -1,1 +1,18 @@
 B3-2-AI.pdf
+
+# Python
+__pycache__/
+*.pyc
+
+# 비밀값 (API 키 실수 커밋 방지)
+.env
+.env.*
+
+# 가상환경
+.venv/
+venv/
+
+# OS / 에디터
+.DS_Store
+.idea/
+.vscode/
