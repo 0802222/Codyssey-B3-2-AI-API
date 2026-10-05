@@ -1,6 +1,6 @@
 import unittest
 
-from ai_gitgen import validator
+from ai_commit_pr_generator import validator
 
 
 class CommitTest(unittest.TestCase):

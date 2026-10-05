@@ -5,7 +5,7 @@
 import argparse
 import sys
 
-from ai_gitgen import client, git_utils, prompts, safe_mode, validator
+from ai_commit_pr_generator import client, git_utils, prompts, safe_mode, validator
 
 
 def build_parser() -> argparse.ArgumentParser:

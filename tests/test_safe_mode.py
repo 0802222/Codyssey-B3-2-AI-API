@@ -1,6 +1,6 @@
 import unittest
 
-from ai_gitgen import safe_mode
+from ai_commit_pr_generator import safe_mode
 
 
 class SafeModeTest(unittest.TestCase):
