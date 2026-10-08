@@ -8,6 +8,12 @@ class API:
     # 응답 대기 시간(초). urllib의 timeout은 '전체 시간'이 아니라 '소켓이 아무 데이터도 못 받은 시간' 기준
     # 비스트리밍 호출이라 응답은 생성이 끝난 뒤 한 번에 오므로, 사실상 '생성 완료까지 기다리는 시간'
     TIMEOUT_SEC = 60
+    # 실패 시 재시도 횟수. 과제 권장(1회 실행당 1~2회 호출)에 맞춰 최대 1회만 재시도
+    MAX_RETRIES = 1
+    RETRY_DELAY_SEC = 2  # 서버가 Retry-After를 주면 그 값을 우선 (최대 RETRY_DELAY_MAX_SEC)
+    RETRY_DELAY_MAX_SEC = 10
+    # 일시적 오류라 다시 보내면 성공할 수 있는 HTTP 상태 코드 (529: Anthropic 서버 과부하)
+    RETRYABLE_STATUS = (408, 429, 500, 502, 503, 504, 529)
 
 
 class Defaults:

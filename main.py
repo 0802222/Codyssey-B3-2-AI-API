@@ -19,6 +19,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="무작위성 0.0~1.0 (기본: %(default)s)")
     p.add_argument("--max-tokens", type=int, default=Defaults.MAX_TOKENS,
                    help="최대 출력 토큰 (기본: %(default)s)")
+    p.add_argument("--timeout", type=float,
+                   help="응답 대기 시간(초) (기본: 모델별 값, python3 main.py models로 확인)")
     p.add_argument("--safe-mode", action="store_true", help="민감정보 마스킹 + diff 전송량 제한")
     p.add_argument("--max-files", type=int, default=SafeMode.MAX_FILES,
                    help="safe-mode 최대 파일 수 (기본: %(default)s)")
@@ -52,6 +54,8 @@ def main(argv: list[str] | None = None) -> int:
         return error("--temperature는 0.0~1.0 범위여야 합니다.")
     if args.max_tokens < 1 or args.max_files < 1 or args.max_lines < 1:
         return error("--max-tokens, --max-files, --max-lines는 1 이상이어야 합니다.")
+    if args.timeout is not None and args.timeout <= 0:
+        return error("--timeout은 0보다 커야 합니다.")
     profile = MODELS[args.model]
 
     # 1. Git 변경 사항 수집
@@ -81,16 +85,20 @@ def main(argv: list[str] | None = None) -> int:
     else:
         info("safe-mode OFF: diff 원문이 AI API로 전송됩니다. 민감정보가 있다면 --safe-mode를 사용하세요.")
 
-    # 3. AI API 호출 (명령당 1회)
+    # 3. AI API 호출 (명령당 1회, 일시적 오류일 때만 1회 재시도)
     try:
         api_key = client.get_api_key() if profile.needs_key else ""
         info(f"AI API 요청 중... (모델: {profile.id})")
         system = prompts.COMMIT_SYSTEM if args.command == "commit" else prompts.PR_SYSTEM
-        raw, cut_off = client.generate(system, prompts.build_user_prompt(branch, status, diff), api_key,
-                                       profile, args.temperature, args.max_tokens)
+        result = client.generate(system, prompts.build_user_prompt(branch, status, diff), api_key,
+                                 profile, args.temperature, args.max_tokens, args.timeout,
+                                 on_retry=lambda msg: print(f"[WARN] {msg}"))
     except client.AIClientError as e:
-        return error(str(e))
-    info("AI API 호출 횟수: 1회")
+        if e.attempts:
+            info(f"AI API 호출 횟수: {e.attempts}회")
+        return error(str(e) + (f"\n[HINT] {e.hint}" if e.hint else ""))
+    info(f"AI API 호출 횟수: {result.attempts}회")
+    raw = result.text
 
     # 4. 검증/다듬기 후 출력
     if args.command == "commit":
@@ -107,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\n--- PR Body ---")
         print(body)
         print("---------------")
-    if cut_off:
+    if result.cut_off:
         warnings.insert(0, f"응답이 max_tokens({args.max_tokens}) 상한에서 잘렸습니다. --max-tokens를 늘려 보세요.")
     for w in warnings:
         print(f"[WARN] {w}")
