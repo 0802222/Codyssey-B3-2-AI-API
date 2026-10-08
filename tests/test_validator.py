@@ -1,12 +1,13 @@
 import unittest
 
 from ai_commit_pr_generator import validator
+from ai_commit_pr_generator.config import Format
 
 
 class CommitTest(unittest.TestCase):
     def test_long_title_truncated(self):
         text, warns = validator.fix_commit("feat: " + "가" * 100)
-        self.assertLessEqual(len(text.splitlines()[0]), validator.COMMIT_TITLE_MAX)
+        self.assertLessEqual(len(text.splitlines()[0]), Format.COMMIT_TITLE_MAX)
         self.assertTrue(warns)
 
     def test_body_without_bullet_gets_bullet(self):
@@ -20,6 +21,11 @@ class CommitTest(unittest.TestCase):
     def test_bad_format_warns(self):
         _, warns = validator.fix_commit("그냥 제목")
         self.assertTrue(any("type" in w for w in warns))
+
+    def test_preamble_removed(self):
+        text, warns = validator.fix_commit("다음은 커밋 메시지입니다:\n\nfeat: 추가\n\n- a.py 수정")
+        self.assertEqual(text, "feat: 추가\n\n- a.py 수정")
+        self.assertTrue(any("설명 문장" in w for w in warns))
 
 
 class PrTest(unittest.TestCase):
@@ -39,7 +45,7 @@ class PrTest(unittest.TestCase):
 
     def test_title_limit(self):
         title, _, _ = validator.fix_pr("TITLE: " + "x" * 200)
-        self.assertLessEqual(len(title), validator.PR_TITLE_MAX)
+        self.assertLessEqual(len(title), Format.PR_TITLE_MAX)
 
 
 if __name__ == "__main__":
