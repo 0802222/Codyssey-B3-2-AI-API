@@ -5,11 +5,13 @@ DEFAULT_MAX_FILES = 10
 DEFAULT_MAX_LINES = 200
 
 # (이름, 정규식, 치환 문자열)
+# - secret-assign: 이름이 키워드로 끝나야 함 (GITHUB_TOKEN=, secret_key= 는 잡고 max_tokens= 는 제외)
+# - email: 앞에 diff의 `+`가 붙어도 마커는 남기고, ui@2x.png 같은 이미지 파일명은 제외
 MASK_RULES = [
-    ("secret-assign", re.compile(r"(?i)((?:api[_-]?key|secret|token|passwd|password)\w*\s*[:=]\s*)['\"]?[^\s'\"]+['\"]?"), r"\1[MASKED]"),
+    ("secret-assign", re.compile(r"(?i)((?:api[_-]?key|secret(?:[_-]?key)?|token|passwd|password)['\"]?\s*[:=]\s*)['\"]?[^\s'\"]+['\"]?"), r"\1[MASKED]"),
     ("api-key", re.compile(r"\b(?:sk|pk|ghp|gho|xox[abp])[-_][A-Za-z0-9_\-]{16,}"), "[MASKED_KEY]"),
     ("aws-key", re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "[MASKED_KEY]"),
-    ("email", re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+"), "[MASKED_EMAIL]"),
+    ("email", re.compile(r"(?<![\w.-])\w[\w.+-]*@[\w-]+(?:\.[\w-]+)*\.(?!(?:png|jpe?g|gif|svg|webp)\b)[A-Za-z]{2,}\b"), "[MASKED_EMAIL]"),
 ]
 
 

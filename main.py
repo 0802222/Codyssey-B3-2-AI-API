@@ -61,9 +61,9 @@ def main(argv: list[str] | None = None) -> int:
     # 2. 안전 모드
     if args.safe_mode:
         diff, stat = safe_mode.apply_safe_mode(diff, args.max_files, args.max_lines)
-        info(f"safe-mode: 민감정보 {stat['masked']}건 마스킹"
+        status, status_masked = safe_mode.mask(status)
+        info(f"safe-mode: 민감정보 {stat['masked'] + status_masked}건 마스킹"
              + (f", diff 제한 적용(최대 {args.max_files}파일/{args.max_lines}줄)" if stat["truncated"] else ""))
-        status, _ = safe_mode.mask(status)
     else:
         info("safe-mode OFF: diff 원문이 AI API로 전송됩니다. 민감정보가 있다면 --safe-mode를 사용하세요.")
 
