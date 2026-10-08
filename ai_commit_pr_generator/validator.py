@@ -1,9 +1,8 @@
 """AI 출력 검증 + 후처리(재생성 없이 규칙에 맞게 다듬기). 변경 내역은 경고 목록으로 반환."""
 import re
 
-COMMIT_TITLE_RECOMMENDED = 50
-COMMIT_TITLE_MAX = 72
-PR_TITLE_MAX = 80
+from .config import Format
+
 SECTIONS = ["Why", "What", "How to Test"]
 PLACEHOLDER = "- (내용 보완 필요)"
 TITLE_PATTERN = re.compile(r"^[A-Za-z]+(\([^)]*\))?!?: ")  # feat: / fix(api): / feat!:
@@ -39,11 +38,11 @@ def fix_commit(text: str) -> tuple[str, list[str]]:
         warnings.append("제목 앞의 설명 문장을 제거했습니다.")
     title = lines[start].strip() if lines else ""
     body = [l for l in lines[start + 1:] if l.strip()]
-    if len(title) > COMMIT_TITLE_MAX:
-        title = _truncate(title, COMMIT_TITLE_MAX)
-        warnings.append(f"커밋 제목이 {COMMIT_TITLE_MAX}자를 넘어 잘랐습니다.")
-    elif len(title) > COMMIT_TITLE_RECOMMENDED:
-        warnings.append(f"커밋 제목이 권장 길이({COMMIT_TITLE_RECOMMENDED}자)를 넘습니다.")
+    if len(title) > Format.COMMIT_TITLE_MAX:
+        title = _truncate(title, Format.COMMIT_TITLE_MAX)
+        warnings.append(f"커밋 제목이 {Format.COMMIT_TITLE_MAX}자를 넘어 잘랐습니다.")
+    elif len(title) > Format.COMMIT_TITLE_RECOMMENDED:
+        warnings.append(f"커밋 제목이 권장 길이({Format.COMMIT_TITLE_RECOMMENDED}자)를 넘습니다.")
     result = title
     if body:
         result += "\n\n" + "\n".join(_ensure_bullets(body))
@@ -70,9 +69,9 @@ def fix_pr(text: str) -> tuple[str, str, list[str]]:
     if not title:
         title = "PR 제목 없음"
         warnings.append("PR 제목을 찾지 못해 기본값을 넣었습니다.")
-    if len(title) > PR_TITLE_MAX:
-        title = _truncate(title, PR_TITLE_MAX)
-        warnings.append(f"PR 제목이 {PR_TITLE_MAX}자를 넘어 잘랐습니다.")
+    if len(title) > Format.PR_TITLE_MAX:
+        title = _truncate(title, Format.PR_TITLE_MAX)
+        warnings.append(f"PR 제목이 {Format.PR_TITLE_MAX}자를 넘어 잘랐습니다.")
     parts = []
     for name in SECTIONS:
         if name not in sections:

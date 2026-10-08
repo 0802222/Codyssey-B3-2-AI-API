@@ -6,20 +6,21 @@ import argparse
 import sys
 
 from ai_commit_pr_generator import client, git_utils, prompts, safe_mode, validator
+from ai_commit_pr_generator.config import Defaults, SafeMode
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="git 변경 사항으로 커밋 메시지/PR 초안을 생성합니다.")
     p.add_argument("command", choices=["commit", "pr"], help="commit: 커밋 메시지, pr: PR 제목/본문")
-    p.add_argument("--model", default=client.DEFAULT_MODEL, help="사용할 모델 (기본: %(default)s)")
-    p.add_argument("--temperature", type=float, default=client.DEFAULT_TEMPERATURE,
+    p.add_argument("--model", default=Defaults.MODEL, help="사용할 모델 (기본: %(default)s)")
+    p.add_argument("--temperature", type=float, default=Defaults.TEMPERATURE,
                    help="무작위성 0.0~1.0 (기본: %(default)s)")
-    p.add_argument("--max-tokens", type=int, default=client.DEFAULT_MAX_TOKENS,
+    p.add_argument("--max-tokens", type=int, default=Defaults.MAX_TOKENS,
                    help="최대 출력 토큰 (기본: %(default)s)")
     p.add_argument("--safe-mode", action="store_true", help="민감정보 마스킹 + diff 전송량 제한")
-    p.add_argument("--max-files", type=int, default=safe_mode.DEFAULT_MAX_FILES,
+    p.add_argument("--max-files", type=int, default=SafeMode.MAX_FILES,
                    help="safe-mode 최대 파일 수 (기본: %(default)s)")
-    p.add_argument("--max-lines", type=int, default=safe_mode.DEFAULT_MAX_LINES,
+    p.add_argument("--max-lines", type=int, default=SafeMode.MAX_LINES,
                    help="safe-mode 최대 diff 줄 수 (기본: %(default)s)")
     return p
 

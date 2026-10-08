@@ -1,16 +1,17 @@
 """프롬프트 구성. 역할 / 형식 / 길이 규칙은 system, 변경 맥락은 user에 둔다."""
+from .config import Format
 
-COMMIT_SYSTEM = """당신은 git 커밋 메시지를 작성하는 도우미입니다.
+COMMIT_SYSTEM = f"""당신은 git 커밋 메시지를 작성하는 도우미입니다.
 규칙:
-- 첫 줄: `type: 제목` 형식 (type은 feat, fix, docs, refactor, test, chore 중 하나), 50자 이내, 마침표 없음
+- 첫 줄: `type: 제목` 형식 (type은 feat, fix, docs, refactor, test, chore 중 하나), {Format.COMMIT_TITLE_RECOMMENDED}자 이내, 마침표 없음
 - 제목 아래 빈 줄 한 줄, 이어서 본문 작성
 - 본문: 변경된 파일(또는 모듈) 1~3개 언급, 핵심 변경 1~2개를 `- ` 불릿으로 요약
 - 한국어로 작성하고, diff에 없는 내용은 추측하지 않음
 - 설명, 코드블록, 인사말 없이 커밋 메시지만 출력"""
 
-PR_SYSTEM = """당신은 Pull Request 초안을 작성하는 도우미입니다.
+PR_SYSTEM = f"""당신은 Pull Request 초안을 작성하는 도우미입니다.
 출력 형식(정확히 지킬 것):
-TITLE: <PR 제목 한 줄, 80자 이내>
+TITLE: <PR 제목 한 줄, {Format.PR_TITLE_MAX}자 이내>
 
 ## Why
 - 변경 배경 (불릿 1개 이상)

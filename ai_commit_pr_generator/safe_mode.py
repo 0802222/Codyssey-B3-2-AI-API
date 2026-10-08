@@ -1,8 +1,7 @@
 """민감정보 마스킹 + diff 전송량 제한."""
 import re
 
-DEFAULT_MAX_FILES = 10
-DEFAULT_MAX_LINES = 200
+from .config import SafeMode
 
 # (이름, 정규식, 치환 문자열)
 # - secret-assign: 이름이 키워드로 끝나야 함 (GITHUB_TOKEN=, secret_key= 는 잡고 max_tokens= 는 제외)
@@ -36,8 +35,8 @@ def limit_diff(diff: str, max_files: int, max_lines: int) -> tuple[str, bool]:
     return "\n".join(lines), truncated
 
 
-def apply_safe_mode(diff: str, max_files: int = DEFAULT_MAX_FILES,
-                    max_lines: int = DEFAULT_MAX_LINES) -> tuple[str, dict]:
+def apply_safe_mode(diff: str, max_files: int = SafeMode.MAX_FILES,
+                    max_lines: int = SafeMode.MAX_LINES) -> tuple[str, dict]:
     limited, truncated = limit_diff(diff, max_files, max_lines)
     masked, count = mask(limited)
     return masked, {"masked": count, "truncated": truncated}

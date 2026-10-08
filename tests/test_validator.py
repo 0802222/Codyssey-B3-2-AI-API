@@ -1,12 +1,13 @@
 import unittest
 
 from ai_commit_pr_generator import validator
+from ai_commit_pr_generator.config import Format
 
 
 class CommitTest(unittest.TestCase):
     def test_long_title_truncated(self):
         text, warns = validator.fix_commit("feat: " + "가" * 100)
-        self.assertLessEqual(len(text.splitlines()[0]), validator.COMMIT_TITLE_MAX)
+        self.assertLessEqual(len(text.splitlines()[0]), Format.COMMIT_TITLE_MAX)
         self.assertTrue(warns)
 
     def test_body_without_bullet_gets_bullet(self):
@@ -44,7 +45,7 @@ class PrTest(unittest.TestCase):
 
     def test_title_limit(self):
         title, _, _ = validator.fix_pr("TITLE: " + "x" * 200)
-        self.assertLessEqual(len(title), validator.PR_TITLE_MAX)
+        self.assertLessEqual(len(title), Format.PR_TITLE_MAX)
 
 
 if __name__ == "__main__":

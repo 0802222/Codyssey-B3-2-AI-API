@@ -6,19 +6,17 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-API_URL = "https://copa.codyssey.kr/v1/messages"
-API_VERSION = "2023-06-01"
-TIMEOUT_SEC = 60
-
-DEFAULT_MODEL = "claude-haiku-4"
-DEFAULT_TEMPERATURE = 0.3
-DEFAULT_MAX_TOKENS = 500
+from .config import API, Defaults
 
 # 대상 프로젝트가 아니라 이 도구 폴더(main.py 옆)의 .env를 읽음
 ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
+# AIClientError : AI API 호출 실패를 나타내는 예외 클래스
 class AIClientError(Exception):
+    # 예외의 발생과 처리를 다른 코드위치에서 담당하도록 분리하기 위해 정의
+    # rasie: 호출자에게 예외를 전달
+    # except: 호출자는 적절한 메시지를 출력하고 종료코드 반환
     pass
 
 
@@ -49,8 +47,8 @@ def _read_env_file() -> dict[str, str]:
     return values
 
 
-def generate(system: str, user: str, api_key: str, model: str = DEFAULT_MODEL,
-             temperature: float = DEFAULT_TEMPERATURE, max_tokens: int = DEFAULT_MAX_TOKENS) -> str:
+def generate(system: str, user: str, api_key: str, model: str = Defaults.MODEL,
+             temperature: float = Defaults.TEMPERATURE, max_tokens: int = Defaults.MAX_TOKENS) -> str:
     """요청 구성 -> 전송 -> 응답 파싱. 실패는 원인을 담은 AIClientError로 변환."""
     payload = {
         "model": model,
@@ -60,17 +58,17 @@ def generate(system: str, user: str, api_key: str, model: str = DEFAULT_MODEL,
         "messages": [{"role": "user", "content": user}],
     }
     request = urllib.request.Request(
-        os.environ.get("AI_API_URL", API_URL),  # 환경변수로 엔드포인트 변경 가능
+        os.environ.get("AI_API_URL", API.URL),  # 환경변수로 엔드포인트 변경 가능
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "content-type": "application/json",
             "x-api-key": api_key,
-            "anthropic-version": API_VERSION,
+            "anthropic-version": API.VERSION,
         },
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SEC) as resp:
+        with urllib.request.urlopen(request, timeout=API.TIMEOUT_SEC) as resp:
             body = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         raise AIClientError(_http_message(e)) from None
