@@ -21,6 +21,11 @@ class CommitTest(unittest.TestCase):
         _, warns = validator.fix_commit("그냥 제목")
         self.assertTrue(any("type" in w for w in warns))
 
+    def test_preamble_removed(self):
+        text, warns = validator.fix_commit("다음은 커밋 메시지입니다:\n\nfeat: 추가\n\n- a.py 수정")
+        self.assertEqual(text, "feat: 추가\n\n- a.py 수정")
+        self.assertTrue(any("설명 문장" in w for w in warns))
+
 
 class PrTest(unittest.TestCase):
     def test_complete_pr_kept(self):

@@ -6,6 +6,7 @@ COMMIT_TITLE_MAX = 72
 PR_TITLE_MAX = 80
 SECTIONS = ["Why", "What", "How to Test"]
 PLACEHOLDER = "- (내용 보완 필요)"
+TITLE_PATTERN = re.compile(r"^[A-Za-z]+(\([^)]*\))?!?: ")  # feat: / fix(api): / feat!:
 
 
 def _strip_fence(text: str) -> str:
@@ -29,15 +30,20 @@ def _ensure_bullets(lines: list[str]) -> list[str]:
 def fix_commit(text: str) -> tuple[str, list[str]]:
     warnings = []
     lines = _strip_fence(text).splitlines()
-    title = lines[0].strip() if lines else ""
-    body = [l for l in lines[1:] if l.strip()]
+    # "다음은 커밋 메시지입니다:" 같은 앞 문장은 버리고 `type: 제목` 형식의 첫 줄부터 사용
+    start = next((i for i, l in enumerate(lines) if TITLE_PATTERN.match(l.strip())), None)
+    if start is None:
+        warnings.append("커밋 제목이 `type: 제목` 형식이 아닙니다.")
+        start = 0
+    elif start > 0:
+        warnings.append("제목 앞의 설명 문장을 제거했습니다.")
+    title = lines[start].strip() if lines else ""
+    body = [l for l in lines[start + 1:] if l.strip()]
     if len(title) > COMMIT_TITLE_MAX:
         title = _truncate(title, COMMIT_TITLE_MAX)
         warnings.append(f"커밋 제목이 {COMMIT_TITLE_MAX}자를 넘어 잘랐습니다.")
     elif len(title) > COMMIT_TITLE_RECOMMENDED:
         warnings.append(f"커밋 제목이 권장 길이({COMMIT_TITLE_RECOMMENDED}자)를 넘습니다.")
-    if not re.match(r"^\w+(\([^)]*\))?!?: ", title):
-        warnings.append("커밋 제목이 `type: 제목` 형식이 아닙니다.")
     result = title
     if body:
         result += "\n\n" + "\n".join(_ensure_bullets(body))
