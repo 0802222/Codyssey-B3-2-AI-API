@@ -1,4 +1,5 @@
 """여러 모듈이 함께 쓰는 설정값. 값을 바꿀 때는 이 파일만 고치면 된다."""
+from dataclasses import dataclass
 
 
 class API:
@@ -10,7 +11,7 @@ class API:
 
 
 class Defaults:
-    MODEL = "claude-haiku-4"
+    MODEL = "haiku"  # MODELS의 키
     TEMPERATURE = 0.3
     MAX_TOKENS = 500
 
@@ -25,3 +26,21 @@ class Format:
     COMMIT_TITLE_MAX = 72
     PR_TITLE_MAX = 80
 
+
+@dataclass(frozen=True)
+class ModelProfile:
+    id: str                    # API에 보내는 실제 모델명
+    description: str
+    url: str = API.URL
+    timeout_sec: int = API.TIMEOUT_SEC
+    needs_key: bool = True     # 로컬 서버는 API Key가 필요 없음
+
+
+# --model 로 고를 수 있는 모델 목록 (python3 main.py models 로 확인)
+MODELS = {
+    "haiku": ModelProfile("claude-haiku-4", "빠르고 저렴함. 커밋/PR 요약에 충분"),
+    "sonnet": ModelProfile("claude-sonnet-4", "더 정확하지만 느리고 비쌈. 변경이 크거나 복잡할 때"),
+    # Ollama의 Anthropic 호환 API 사용. 모델 로딩·CPU/GPU 생성 속도 때문에 타임아웃을 길게 잡음
+    "local": ModelProfile("qwen2.5-coder:7b", "로컬 LLM (Ollama). 코드가 외부로 나가지 않음",
+                          url="http://localhost:11434/v1/messages", timeout_sec=300, needs_key=False),
+}

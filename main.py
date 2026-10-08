@@ -1,18 +1,20 @@
 """AI 기반 Git 커밋 메시지 / PR 초안 생성기 (CLI).
 
-사용: python main.py commit | pr [옵션]
+사용: python main.py commit | pr | models [옵션]
 """
 import argparse
 import sys
 
 from ai_commit_pr_generator import client, git_utils, prompts, safe_mode, validator
-from ai_commit_pr_generator.config import Defaults, SafeMode
+from ai_commit_pr_generator.config import Defaults, MODELS, SafeMode
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="git 변경 사항으로 커밋 메시지/PR 초안을 생성합니다.")
-    p.add_argument("command", choices=["commit", "pr"], help="commit: 커밋 메시지, pr: PR 제목/본문")
-    p.add_argument("--model", default=Defaults.MODEL, help="사용할 모델 (기본: %(default)s)")
+    p.add_argument("command", choices=["commit", "pr", "models"],
+                   help="commit: 커밋 메시지, pr: PR 제목/본문, models: 모델 목록")
+    p.add_argument("--model", choices=list(MODELS), default=Defaults.MODEL,
+                   help="사용할 모델 (기본: %(default)s, 목록: python3 main.py models)")
     p.add_argument("--temperature", type=float, default=Defaults.TEMPERATURE,
                    help="무작위성 0.0~1.0 (기본: %(default)s)")
     p.add_argument("--max-tokens", type=int, default=Defaults.MAX_TOKENS,
@@ -34,12 +36,23 @@ def error(msg: str) -> int:
     return 1
 
 
+def print_models() -> int:
+    print("사용 가능한 모델 (--model <이름>)\n")
+    for name, m in MODELS.items():
+        mark = " (기본)" if name == Defaults.MODEL else ""
+        print(f"  {name:<8} {m.id:<20} 타임아웃 {m.timeout_sec}초  {m.description}{mark}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "models":
+        return print_models()
     if not 0.0 <= args.temperature <= 1.0:
         return error("--temperature는 0.0~1.0 범위여야 합니다.")
     if args.max_tokens < 1 or args.max_files < 1 or args.max_lines < 1:
         return error("--max-tokens, --max-files, --max-lines는 1 이상이어야 합니다.")
+    profile = MODELS[args.model]
 
     # 1. Git 변경 사항 수집
     try:
@@ -70,11 +83,11 @@ def main(argv: list[str] | None = None) -> int:
 
     # 3. AI API 호출 (명령당 1회)
     try:
-        api_key = client.get_api_key()
-        info("AI API 요청 중...")
+        api_key = client.get_api_key() if profile.needs_key else ""
+        info(f"AI API 요청 중... (모델: {profile.id})")
         system = prompts.COMMIT_SYSTEM if args.command == "commit" else prompts.PR_SYSTEM
         raw, cut_off = client.generate(system, prompts.build_user_prompt(branch, status, diff), api_key,
-                                       args.model, args.temperature, args.max_tokens)
+                                       profile, args.temperature, args.max_tokens)
     except client.AIClientError as e:
         return error(str(e))
     info("AI API 호출 횟수: 1회")

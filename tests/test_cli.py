@@ -15,12 +15,14 @@ from ai_commit_pr_generator import client
 
 RESPONSES = {}
 LAST_BODY = {}
+CALLS = []
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         LAST_BODY.update(body)
+        CALLS.append(body)
         code, payload = RESPONSES["next"]
         data = json.dumps(payload).encode()
         self.send_response(code)
@@ -61,6 +63,7 @@ class CliTest(unittest.TestCase):
         subprocess.run(["git", "commit", "-qm", "init"], check=True)
         os.environ["AI_API_URL"] = self.url
         os.environ["AI_API_KEY"] = "test-key"
+        CALLS.clear()
         # 개발자 PC의 실제 .env가 테스트에 섞이지 않도록 별도 경로로 교체 (git 저장소 밖)
         self.env_dir = tempfile.TemporaryDirectory()
         self.old_env_file = client.ENV_FILE
@@ -146,6 +149,30 @@ class CliTest(unittest.TestCase):
         code, out, _ = self.run_cli("pr", "--max-tokens", "60")
         self.assertEqual(code, 0)
         self.assertIn("max_tokens(60) 상한에서 잘렸습니다", out)
+
+    def test_model_alias_sends_model_id(self):
+        self.edit()
+        RESPONSES["next"] = ok("feat: x")
+        self.run_cli("commit", "--model", "sonnet")
+        self.assertEqual(LAST_BODY["model"], "claude-sonnet-4")
+
+    def test_unknown_model_rejected(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            main.main(["commit", "--model", "gpt-4"])
+        self.assertEqual(CALLS, [])
+
+    def test_models_command(self):
+        code, out, _ = self.run_cli("models")
+        self.assertEqual(code, 0)
+        self.assertIn("haiku", out)
+        self.assertIn("local", out)
+
+    def test_local_model_needs_no_key(self):
+        self.edit()
+        del os.environ["AI_API_KEY"]
+        RESPONSES["next"] = ok("feat: x")
+        code, _, _ = self.run_cli("commit", "--model", "local")
+        self.assertEqual(code, 0)
 
 
 if __name__ == "__main__":

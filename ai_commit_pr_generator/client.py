@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from .config import API, Defaults
+from .config import API, Defaults, MODELS, ModelProfile
 
 # 대상 프로젝트가 아니라 이 도구 폴더(main.py 옆)의 .env를 읽음
 ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
@@ -47,19 +47,19 @@ def _read_env_file() -> dict[str, str]:
     return values
 
 
-def generate(system: str, user: str, api_key: str, model: str = Defaults.MODEL,
+def generate(system: str, user: str, api_key: str, profile: ModelProfile = MODELS[Defaults.MODEL],
              temperature: float = Defaults.TEMPERATURE, max_tokens: int = Defaults.MAX_TOKENS) -> tuple[str, bool]:
     """요청 구성 -> 전송 -> 응답 파싱. (응답 텍스트, max_tokens로 잘렸는지) 반환.
     실패는 원인을 담은 AIClientError로 변환."""
     payload = {
-        "model": model,
+        "model": profile.id,
         "max_tokens": max_tokens,
         "temperature": temperature,
         "system": system,
         "messages": [{"role": "user", "content": user}],
     }
     request = urllib.request.Request(
-        os.environ.get("AI_API_URL", API.URL),  # 환경변수로 엔드포인트 변경 가능
+        os.environ.get("AI_API_URL", profile.url),  # 환경변수로 엔드포인트 변경 가능
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "content-type": "application/json",
@@ -69,7 +69,7 @@ def generate(system: str, user: str, api_key: str, model: str = Defaults.MODEL,
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=API.TIMEOUT_SEC) as resp:
+        with urllib.request.urlopen(request, timeout=profile.timeout_sec) as resp:
             body = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         raise AIClientError(_http_message(e)) from None
