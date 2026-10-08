@@ -73,8 +73,8 @@ def main(argv: list[str] | None = None) -> int:
         api_key = client.get_api_key()
         info("AI API 요청 중...")
         system = prompts.COMMIT_SYSTEM if args.command == "commit" else prompts.PR_SYSTEM
-        raw = client.generate(system, prompts.build_user_prompt(branch, status, diff), api_key,
-                              args.model, args.temperature, args.max_tokens)
+        raw, cut_off = client.generate(system, prompts.build_user_prompt(branch, status, diff), api_key,
+                                       args.model, args.temperature, args.max_tokens)
     except client.AIClientError as e:
         return error(str(e))
     info("AI API 호출 횟수: 1회")
@@ -94,6 +94,8 @@ def main(argv: list[str] | None = None) -> int:
         print("\n--- PR Body ---")
         print(body)
         print("---------------")
+    if cut_off:
+        warnings.insert(0, f"응답이 max_tokens({args.max_tokens}) 상한에서 잘렸습니다. --max-tokens를 늘려 보세요.")
     for w in warnings:
         print(f"[WARN] {w}")
     print("\n※ 생성된 문구는 초안입니다. 검토 후 직접 적용하세요.")

@@ -33,8 +33,8 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
-def ok(text):
-    return 200, {"content": [{"type": "text", "text": text}]}
+def ok(text, stop_reason="end_turn"):
+    return 200, {"content": [{"type": "text", "text": text}], "stop_reason": stop_reason}
 
 
 class CliTest(unittest.TestCase):
@@ -47,6 +47,7 @@ class CliTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.server.shutdown()
+        cls.server.server_close()
 
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()
@@ -138,6 +139,13 @@ class CliTest(unittest.TestCase):
         code, _, err = self.run_cli("commit")
         self.assertEqual(code, 1)
         self.assertIn("HTTP 401", err)
+
+    def test_max_tokens_cut_off_warns(self):
+        self.edit()
+        RESPONSES["next"] = ok("TITLE: feat: x\n## Why\n- a", stop_reason="max_tokens")
+        code, out, _ = self.run_cli("pr", "--max-tokens", "60")
+        self.assertEqual(code, 0)
+        self.assertIn("max_tokens(60) 상한에서 잘렸습니다", out)
 
 
 if __name__ == "__main__":

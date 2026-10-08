@@ -48,8 +48,9 @@ def _read_env_file() -> dict[str, str]:
 
 
 def generate(system: str, user: str, api_key: str, model: str = Defaults.MODEL,
-             temperature: float = Defaults.TEMPERATURE, max_tokens: int = Defaults.MAX_TOKENS) -> str:
-    """요청 구성 -> 전송 -> 응답 파싱. 실패는 원인을 담은 AIClientError로 변환."""
+             temperature: float = Defaults.TEMPERATURE, max_tokens: int = Defaults.MAX_TOKENS) -> tuple[str, bool]:
+    """요청 구성 -> 전송 -> 응답 파싱. (응답 텍스트, max_tokens로 잘렸는지) 반환.
+    실패는 원인을 담은 AIClientError로 변환."""
     payload = {
         "model": model,
         "max_tokens": max_tokens,
@@ -81,7 +82,8 @@ def generate(system: str, user: str, api_key: str, model: str = Defaults.MODEL,
     text = "".join(b.get("text", "") for b in body.get("content", []) if b.get("type") == "text")
     if not text.strip():
         raise AIClientError("AI 응답에 텍스트가 없습니다.")
-    return text.strip()
+    # stop_reason이 "max_tokens"면 응답이 길이 상한에서 잘린 것
+    return text.strip(), body.get("stop_reason") == "max_tokens"
 
 
 def _http_message(e: urllib.error.HTTPError) -> str:
