@@ -5,6 +5,10 @@
 import argparse
 import sys
 
+# 아래 모듈은 3.10 문법(X | None 등)을 써서 import 단계에서 TypeError가 나므로 먼저 확인
+if sys.version_info < (3, 10):
+    sys.exit(f"[ERROR] Python 3.10 이상이 필요합니다. (현재 {sys.version.split()[0]})")
+
 from ai_commit_pr_generator import client, git_utils, prompts, safe_mode, validator
 from ai_commit_pr_generator.config import Defaults, MODELS, SafeMode
 
